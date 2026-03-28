@@ -4,12 +4,6 @@ import os
 import unicodedata
 from datetime import datetime, timezone, timedelta
 
-def strip_accents(text):
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', text)
-        if unicodedata.category(c) != 'Mn'
-    )
-
 st.set_page_config(page_title="Check-in Shine 2026", page_icon="✨", layout="centered")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -29,115 +23,136 @@ HEADERS = {
 
 BRT = timezone(timedelta(hours=-3))
 
+def strip_accents(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 #MainMenu, footer, header {visibility: hidden;}
-.block-container {padding-top: 1rem; padding-bottom: 1rem; max-width: 640px;}
+.block-container {padding-top: 0.8rem; padding-bottom: 0.5rem; max-width: 500px;}
 html, body, [data-testid="stAppViewContainer"] { font-family: 'Poppins', sans-serif; }
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(165deg, #8B3A4A 0%, #A0505E 30%, #B8736D 60%, #D4A574 100%);
 }
 [data-testid="stHeader"] { background: transparent; }
 
-/* Title */
-.shine-title { text-align: center; padding: 0.6rem 0 0.2rem 0; }
-.shine-title h1 { font-weight: 300; font-size: 1.8rem; color: #FFECD2; margin: 0; letter-spacing: 2px; }
-.shine-title h2 { font-weight: 700; font-size: 2.2rem; color: #FFD7A8; margin: -0.2rem 0 0 0; text-shadow: 0 0 20px rgba(255,215,168,0.4); }
-.shine-title p { font-size: 0.85rem; color: #D4B8A0; margin: 0; letter-spacing: 1px; }
+/* Title - compact */
+.shine-title { text-align: center; padding: 0.4rem 0 0.1rem 0; }
+.shine-title h1 { font-weight: 300; font-size: 1.4rem; color: #FFECD2; margin: 0; letter-spacing: 2px; }
+.shine-title h2 { font-weight: 700; font-size: 1.8rem; color: #FFD7A8; margin: -0.1rem 0 0 0; text-shadow: 0 0 20px rgba(255,215,168,0.4); }
+.shine-title p { font-size: 0.75rem; color: #D4B8A0; margin: 0; letter-spacing: 1px; }
 
-/* Stats */
-.stats-bar { display: flex; justify-content: space-around; background: rgba(255,255,255,0.1); border-radius: 14px; padding: 0.8rem 0.4rem; margin: 0.6rem 0; }
+/* Stats - compact */
+.stats-bar { display: flex; justify-content: space-around; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 0.5rem 0.3rem; margin: 0.4rem 0; }
 .stat-item { text-align: center; }
-.stat-number { font-size: 1.6rem; font-weight: 700; color: #FFD7A8; }
-.stat-label { font-size: 0.7rem; color: #E8C8B0; text-transform: uppercase; letter-spacing: 1px; }
+.stat-number { font-size: 1.3rem; font-weight: 700; color: #FFD7A8; }
+.stat-label { font-size: 0.6rem; color: #E8C8B0; text-transform: uppercase; letter-spacing: 1px; }
 
-/* ── Search bar: clean white ── */
+/* Search bar */
 [data-testid="stTextInput"] > div { background: transparent !important; }
 [data-testid="stTextInput"] input {
     background: rgba(255,255,255,0.92) !important;
     border: 1px solid rgba(200,180,170,0.4) !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     color: #4A2A30 !important;
     font-family: 'Poppins', sans-serif !important;
-    font-size: 1rem !important;
-    padding: 0.75rem 1.1rem !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    font-size: 0.95rem !important;
+    padding: 0.6rem 1rem !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
 }
 [data-testid="stTextInput"] input::placeholder { color: #9A7A70 !important; }
 [data-testid="stTextInput"] label { display: none !important; }
 
-/* ── Person card ── */
-.card {
-    background: rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 0.75rem 1rem;
-    margin: 0.4rem 0;
+/* Select / dropdown filter */
+[data-testid="stSelectbox"] > div { background: transparent !important; }
+[data-testid="stSelectbox"] > div > div {
+    background: rgba(255,255,255,0.15) !important;
+    border: 1px solid rgba(255,236,210,0.3) !important;
+    border-radius: 10px !important;
+    color: #FFECD2 !important;
+    font-size: 0.85rem !important;
+}
+[data-testid="stSelectbox"] label { display: none !important; }
+[data-testid="stSelectbox"] svg { fill: #FFD7A8 !important; }
+
+/* ── Person row: ALL IN ONE LINE ── */
+.p-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.5rem 0.6rem;
+    margin: 0.25rem 0;
+    gap: 0.4rem;
 }
-.card.done {
+.p-row.done {
     background: rgba(255,215,168,0.18);
     border-left: 3px solid #FFD7A8;
 }
-.card .info { flex: 1; }
-.card .name {
+.p-row .name {
+    flex: 1;
     color: #FFECD2;
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 400;
-    display: block;
+    line-height: 1.2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.card.done .name { color: #FFD7A8; font-weight: 500; }
-.card .time {
+.p-row.done .name { color: #FFD7A8; font-weight: 500; }
+.p-row .time {
     color: #D4B8A0;
-    font-size: 0.7rem;
-    margin-top: 2px;
+    font-size: 0.6rem;
 }
-.card .check-icon {
-    width: 36px; height: 36px;
+.p-row .ok-icon {
+    width: 28px; height: 28px;
     border-radius: 50%;
     background: #2ECDA7;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; margin-left: 0.6rem;
+    flex-shrink: 0;
 }
-.card .check-icon svg { width: 20px; height: 20px; }
+.p-row .ok-icon svg { width: 16px; height: 16px; }
 
-/* ── Buttons: styled as pill ── */
+/* ── Button: compact pill INSIDE the row ── */
 [data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
     gap: 0 !important;
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"]:first-child {
+    flex: 1 !important;
+    min-width: 0 !important;
 }
 [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child {
-    max-width: 130px !important;
-    min-width: 100px !important;
+    max-width: 90px !important;
+    min-width: 80px !important;
     display: flex; align-items: center; justify-content: center;
 }
-/* "FAZER CHECK-IN" style button */
 .stButton > button {
     font-family: 'Poppins', sans-serif !important;
-    font-size: 0.7rem !important;
+    font-size: 0.6rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.4rem 0.9rem !important;
-    border-radius: 25px !important;
+    letter-spacing: 0.3px !important;
+    padding: 0.35rem 0.6rem !important;
+    border-radius: 20px !important;
     min-height: 0 !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
     white-space: nowrap !important;
-    transition: all 0.2s !important;
-}
-/* Default: check-in pill */
-.stButton > button {
     background: transparent !important;
     color: #FFD7A8 !important;
     border: 1.5px solid #FFD7A8 !important;
+    width: 100% !important;
 }
 .stButton > button:hover {
     background: rgba(255,215,168,0.2) !important;
 }
 
-hr { border-color: rgba(255,236,210,0.12) !important; }
-.no-results { color: #D4B8A0; text-align: center; font-size: 0.95rem; margin-top: 1.5rem; }
+hr { border-color: rgba(255,236,210,0.1) !important; margin: 0.3rem 0 !important; }
+.no-results { color: #D4B8A0; text-align: center; font-size: 0.9rem; margin-top: 1rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -218,42 +233,32 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-search = st.text_input("Buscar", placeholder="🔍  Nome, email, nº do ingresso ou pedido...")
+search = st.text_input("Buscar", placeholder="🔍  Digite nome ou sobrenome...")
 
-# Filter tabs
-f1, f2, f3 = st.columns(3)
-with f1:
-    all_btn = st.button(f"Todas ({total})", key="f_all", use_container_width=True)
-with f2:
-    arrived_btn = st.button(f"Chegaram ({arrived})", key="f_arrived", use_container_width=True)
-with f3:
-    missing_btn = st.button(f"Faltam ({missing})", key="f_missing", use_container_width=True)
-
-if arrived_btn:
-    st.session_state["filtro"] = "chegaram"
-elif missing_btn:
-    st.session_state["filtro"] = "faltam"
-elif all_btn:
-    st.session_state["filtro"] = "todas"
-
-filtro = st.session_state.get("filtro", "todas")
+filtro = st.selectbox("Filtro", [
+    f"Todas ({total})",
+    f"Chegaram ({arrived})",
+    f"Faltam ({missing})",
+], label_visibility="collapsed")
 
 st.markdown("---")
 
+# Apply filter
 data = all_data
-if filtro == "chegaram":
+if filtro.startswith("Chegaram"):
     data = [d for d in data if d.get("checked_in")]
-elif filtro == "faltam":
+elif filtro.startswith("Faltam"):
     data = [d for d in data if not d.get("checked_in")]
 
+# Apply search
 if search:
     term = strip_accents(search.strip().lower())
     data = [d for d in data if term in strip_accents(d["nome"].lower())]
 
 if not data and total > 0:
-    st.markdown('<p class="no-results">Nenhum resultado encontrado.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="no-results">Nenhum resultado.</p>', unsafe_allow_html=True)
 elif total == 0:
-    st.markdown('<p class="no-results">Nenhuma inscrita carregada ainda.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="no-results">Nenhuma inscrita carregada.</p>', unsafe_allow_html=True)
 
 CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
 
@@ -266,13 +271,13 @@ for person in data:
     col1, col2 = st.columns([5, 2])
 
     with col1:
-        card_cls = "card done" if checked else "card"
-        time_html = f'<span class="time">✓ {format_time(checked_at)}</span>' if checked and checked_at else ""
-        icon_html = f'<div class="check-icon">{CHECK_SVG}</div>' if checked else ""
+        cls = "p-row done" if checked else "p-row"
+        icon = f'<div class="ok-icon">{CHECK_SVG}</div>' if checked else ""
+        time_str = f'<div class="time">✓ {format_time(checked_at)}</div>' if checked and checked_at else ""
         st.markdown(
-            f'<div class="{card_cls}">'
-            f'  <div class="info"><span class="name">{name}</span>{time_html}</div>'
-            f'  {icon_html}'
+            f'<div class="{cls}">'
+            f'  <div style="flex:1;min-width:0"><div class="name">{name}</div>{time_str}</div>'
+            f'  {icon}'
             f'</div>',
             unsafe_allow_html=True
         )
