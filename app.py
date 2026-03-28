@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+from datetime import datetime, timezone, timedelta
 
 st.set_page_config(page_title="Check-in Shine 2026", page_icon="✨", layout="centered")
 
@@ -19,6 +20,8 @@ HEADERS = {
     "Prefer": "return=representation",
 }
 
+BRT = timezone(timedelta(hours=-3))
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -34,70 +37,104 @@ html, body, [data-testid="stAppViewContainer"] { font-family: 'Poppins', sans-se
 .shine-title { text-align: center; padding: 0.6rem 0 0.2rem 0; }
 .shine-title h1 { font-weight: 300; font-size: 1.8rem; color: #FFECD2; margin: 0; letter-spacing: 2px; }
 .shine-title h2 { font-weight: 700; font-size: 2.2rem; color: #FFD7A8; margin: -0.2rem 0 0 0; text-shadow: 0 0 20px rgba(255,215,168,0.4); }
-.shine-title p { font-size: 0.85rem; color: #FFECD2BB; margin: 0; letter-spacing: 1px; }
+.shine-title p { font-size: 0.85rem; color: #D4B8A0; margin: 0; letter-spacing: 1px; }
 
 /* Stats */
-.stats-bar { display: flex; justify-content: space-around; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 0.8rem 0.4rem; margin: 0.6rem 0; backdrop-filter: blur(10px); }
+.stats-bar { display: flex; justify-content: space-around; background: rgba(255,255,255,0.1); border-radius: 14px; padding: 0.8rem 0.4rem; margin: 0.6rem 0; }
 .stat-item { text-align: center; }
 .stat-number { font-size: 1.6rem; font-weight: 700; color: #FFD7A8; }
-.stat-label { font-size: 0.7rem; color: #FFECD2BB; text-transform: uppercase; letter-spacing: 1px; }
+.stat-label { font-size: 0.7rem; color: #E8C8B0; text-transform: uppercase; letter-spacing: 1px; }
 
-/* Search input */
-[data-testid="stTextInput"] input { background: rgba(255,255,255,0.12) !important; border: 1px solid rgba(255,236,210,0.3) !important; border-radius: 12px !important; color: #FFECD2 !important; font-family: 'Poppins', sans-serif !important; font-size: 1.05rem !important; padding: 0.7rem 1rem !important; }
-[data-testid="stTextInput"] input::placeholder { color: #FFECD2AA !important; }
+/* ── Search bar: clean white ── */
+[data-testid="stTextInput"] > div { background: transparent !important; }
+[data-testid="stTextInput"] input {
+    background: rgba(255,255,255,0.92) !important;
+    border: 1px solid rgba(200,180,170,0.4) !important;
+    border-radius: 14px !important;
+    color: #4A2A30 !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1rem !important;
+    padding: 0.75rem 1.1rem !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+[data-testid="stTextInput"] input::placeholder { color: #9A7A70 !important; }
 [data-testid="stTextInput"] label { display: none !important; }
 
-/* Person card */
-.person-card {
-    display: flex; align-items: center; justify-content: space-between;
-    background: rgba(255,255,255,0.08); border-radius: 12px;
-    padding: 0.7rem 1rem; margin: 0.35rem 0;
-    min-height: 48px;
+/* ── Person card ── */
+.card {
+    background: rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    margin: 0.4rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-.person-card.checked {
-    background: rgba(255,215,168,0.15); border-left: 3px solid #FFD7A8;
+.card.done {
+    background: rgba(255,215,168,0.18);
+    border-left: 3px solid #FFD7A8;
 }
-.person-card .name {
-    color: #FFECD2; font-size: 1rem; font-weight: 400; flex: 1;
+.card .info { flex: 1; }
+.card .name {
+    color: #FFECD2;
+    font-size: 1rem;
+    font-weight: 400;
+    display: block;
 }
-.person-card.checked .name { color: #FFD7A8; font-weight: 500; }
-.person-card .badge {
-    background: #FFD7A8; color: #7A3040; font-size: 0.65rem; font-weight: 600;
-    padding: 0.2rem 0.6rem; border-radius: 20px; text-transform: uppercase;
-    letter-spacing: 0.5px; margin-left: 0.5rem; white-space: nowrap;
+.card.done .name { color: #FFD7A8; font-weight: 500; }
+.card .time {
+    color: #D4B8A0;
+    font-size: 0.7rem;
+    margin-top: 2px;
 }
+.card .check-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #2ECDA7;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-left: 0.6rem;
+}
+.card .check-icon svg { width: 20px; height: 20px; }
 
-/* ── FIX: transparent small buttons ── */
-[data-testid="stColumn"]:last-child button {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    font-size: 1.4rem !important;
-    padding: 0.2rem 0.4rem !important;
-    min-height: 0 !important;
-    line-height: 1 !important;
-}
-[data-testid="stColumn"]:last-child button:hover {
-    background: rgba(255,255,255,0.1) !important;
-    border-radius: 8px !important;
-}
-/* Force columns side by side on mobile */
+/* ── Buttons: styled as pill ── */
 [data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
     gap: 0 !important;
 }
 [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child {
-    max-width: 50px !important;
-    min-width: 50px !important;
+    max-width: 130px !important;
+    min-width: 100px !important;
     display: flex; align-items: center; justify-content: center;
 }
+/* "FAZER CHECK-IN" style button */
+.stButton > button {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    padding: 0.4rem 0.9rem !important;
+    border-radius: 25px !important;
+    min-height: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    transition: all 0.2s !important;
+}
+/* Default: check-in pill */
+.stButton > button {
+    background: transparent !important;
+    color: #FFD7A8 !important;
+    border: 1.5px solid #FFD7A8 !important;
+}
+.stButton > button:hover {
+    background: rgba(255,215,168,0.2) !important;
+}
 
-hr { border-color: rgba(255,236,210,0.15) !important; }
-.no-results { color: #FFECD2AA; text-align: center; font-size: 0.95rem; margin-top: 1rem; }
+hr { border-color: rgba(255,236,210,0.12) !important; }
+.no-results { color: #D4B8A0; text-align: center; font-size: 0.95rem; margin-top: 1.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── JS: instant search (filter on every keystroke, no Enter needed) ──
+# ── JS: instant search ──
 st.markdown("""
 <script>
 const doc = window.parent.document;
@@ -112,7 +149,7 @@ function setupInstantSearch() {
             input.dispatchEvent(new Event('change', { bubbles: true }));
             input.blur();
             setTimeout(() => input.focus(), 50);
-        }, 300);
+        }, 350);
     });
 }
 setTimeout(setupInstantSearch, 500);
@@ -128,12 +165,29 @@ def load_all():
     r.raise_for_status()
     return r.json()
 
-def toggle_checkin(record_id, new_val):
+def do_checkin(record_id):
+    now = datetime.now(BRT).isoformat()
     requests.patch(
         f"{API}/checkin?id=eq.{record_id}",
         headers=HEADERS,
-        json={"checked_in": new_val},
+        json={"checked_in": True, "checked_at": now},
     ).raise_for_status()
+
+def undo_checkin(record_id):
+    requests.patch(
+        f"{API}/checkin?id=eq.{record_id}",
+        headers=HEADERS,
+        json={"checked_in": False, "checked_at": None},
+    ).raise_for_status()
+
+def format_time(iso_str):
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        return dt.strftime("%d/%m %H:%M")
+    except:
+        return ""
 
 # ── UI ──────────────────────────────────────────────────────────────
 st.markdown("""
@@ -157,7 +211,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-search = st.text_input("Buscar", placeholder="🔍 Digite nome ou sobrenome para filtrar...")
+search = st.text_input("Buscar", placeholder="🔍  Nome, email, nº do ingresso ou pedido...")
 
 st.markdown("---")
 
@@ -171,18 +225,34 @@ if not data and total > 0:
 elif total == 0:
     st.markdown('<p class="no-results">Nenhuma inscrita carregada ainda.</p>', unsafe_allow_html=True)
 
+CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+
 for person in data:
     pid = person["id"]
     name = person["nome"]
     checked = person.get("checked_in", False)
-    card_cls = "person-card checked" if checked else "person-card"
+    checked_at = person.get("checked_at", None)
 
-    col1, col2 = st.columns([6, 1])
+    col1, col2 = st.columns([5, 2])
+
     with col1:
-        badge = '<span class="badge">✓ chegou</span>' if checked else ""
-        st.markdown(f'<div class="{card_cls}"><span class="name">{name}</span>{badge}</div>', unsafe_allow_html=True)
+        card_cls = "card done" if checked else "card"
+        time_html = f'<span class="time">✓ {format_time(checked_at)}</span>' if checked and checked_at else ""
+        icon_html = f'<div class="check-icon">{CHECK_SVG}</div>' if checked else ""
+        st.markdown(
+            f'<div class="{card_cls}">'
+            f'  <div class="info"><span class="name">{name}</span>{time_html}</div>'
+            f'  {icon_html}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
     with col2:
-        label = "↩️" if checked else "☐"
-        if st.button(label, key=f"b_{pid}"):
-            toggle_checkin(pid, not checked)
-            st.rerun()
+        if checked:
+            if st.button("DESFAZER", key=f"b_{pid}"):
+                undo_checkin(pid)
+                st.rerun()
+        else:
+            if st.button("CHECK-IN", key=f"b_{pid}"):
+                do_checkin(pid)
+                st.rerun()
