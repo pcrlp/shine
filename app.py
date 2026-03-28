@@ -1,16 +1,14 @@
 import streamlit as st
-import requests 
-import pandas as pd
+import requests
 import os
 
-# ── Config ──────────────────────────────────────────────────────────
 st.set_page_config(page_title="Check-in Shine 2026", page_icon="✨", layout="centered")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    st.error("Configure SUPABASE_URL e SUPABASE_KEY nas variáveis de ambiente (Secrets).")
+    st.error("Configure SUPABASE_URL e SUPABASE_KEY nos Secrets.")
     st.stop()
 
 API = f"{SUPABASE_URL}/rest/v1"
@@ -21,7 +19,6 @@ HEADERS = {
     "Prefer": "return=representation",
 }
 
-# ── Theme CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -34,8 +31,8 @@ html, body, [data-testid="stAppViewContainer"] { font-family: 'Poppins', sans-se
 [data-testid="stHeader"] { background: transparent; }
 
 .shine-title { text-align: center; padding: 0.6rem 0 0.2rem 0; }
-.shine-title h1 { font-family: 'Poppins', sans-serif; font-weight: 300; font-size: 1.6rem; color: #FFECD2; margin: 0; letter-spacing: 2px; }
-.shine-title h2 { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 2rem; color: #FFD7A8; margin: -0.3rem 0 0 0; text-shadow: 0 0 20px rgba(255,215,168,0.4); }
+.shine-title h1 { font-weight: 300; font-size: 1.6rem; color: #FFECD2; margin: 0; letter-spacing: 2px; }
+.shine-title h2 { font-weight: 700; font-size: 2rem; color: #FFD7A8; margin: -0.3rem 0 0 0; text-shadow: 0 0 20px rgba(255,215,168,0.4); }
 .shine-title p { font-size: 0.75rem; color: #FFECD2AA; margin: 0; letter-spacing: 1px; }
 
 .stats-bar { display: flex; justify-content: space-around; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 0.7rem 0.4rem; margin: 0.6rem 0; backdrop-filter: blur(10px); }
@@ -48,7 +45,6 @@ html, body, [data-testid="stAppViewContainer"] { font-family: 'Poppins', sans-se
 [data-testid="stTextInput"] label { color: #FFECD2CC !important; font-size: 0.8rem !important; }
 
 .person-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 0.55rem 0.8rem; margin: 0.3rem 0; }
-.person-row:hover { background: rgba(255,255,255,0.14); }
 .person-row.checked { background: rgba(255,215,168,0.18); border-left: 3px solid #FFD7A8; }
 .person-name { color: #FFECD2; font-size: 0.88rem; font-weight: 400; }
 .person-name.checked { color: #FFD7A8; font-weight: 500; }
@@ -57,16 +53,11 @@ html, body, [data-testid="stAppViewContainer"] { font-family: 'Poppins', sans-se
 .stButton > button { background: rgba(255,215,168,0.2) !important; color: #FFECD2 !important; border: 1px solid rgba(255,236,210,0.3) !important; border-radius: 8px !important; font-family: 'Poppins', sans-serif !important; font-size: 0.8rem !important; padding: 0.35rem 1rem !important; }
 .stButton > button:hover { background: rgba(255,215,168,0.35) !important; border-color: #FFD7A8 !important; }
 
-[data-testid="stFileUploader"] { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 0.5rem; }
-[data-testid="stFileUploader"] label { color: #FFECD2CC !important; font-size: 0.8rem !important; }
-[data-testid="stExpander"] { border: 1px solid rgba(255,236,210,0.15) !important; border-radius: 10px !important; }
-[data-testid="stExpander"] summary { color: #FFECD2CC !important; font-size: 0.8rem !important; }
-[data-testid="stExpander"] summary span { color: #FFECD2CC !important; }
 hr { border-color: rgba(255,236,210,0.15) !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Supabase REST helpers ───────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────
 def load_all():
     r = requests.get(f"{API}/checkin?order=nome.asc", headers=HEADERS)
     r.raise_for_status()
@@ -79,15 +70,6 @@ def toggle_checkin(record_id, new_val):
         json={"checked_in": new_val},
     )
     r.raise_for_status()
-
-def upload_names(df):
-    requests.delete(f"{API}/checkin?id=gt.0", headers=HEADERS)
-    records = [{"nome": str(n).strip(), "checked_in": False} for n in df.iloc[:, 0] if str(n).strip()]
-    for i in range(0, len(records), 100):
-        requests.post(f"{API}/checkin", headers=HEADERS, json=records[i:i + 100])
-
-def has_any_checkin(data):
-    return any(d.get("checked_in") for d in data)
 
 # ── UI ──────────────────────────────────────────────────────────────
 st.markdown("""
@@ -111,33 +93,9 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-locked = has_any_checkin(all_data)
-
-with st.expander("📋 Carregar lista de inscritas" if not locked else "🔒 Lista bloqueada (check-in iniciado)"):
-    if locked:
-        st.caption("Não é possível substituir a lista após o início do check-in.")
-    else:
-        uploaded = st.file_uploader("Envie .xlsx ou .csv (1 coluna com nomes)", type=["xlsx", "csv"])
-        if uploaded:
-            try:
-                if uploaded.name.endswith(".csv"):
-                    df = pd.read_csv(uploaded, header=None)
-                else:
-                    df = pd.read_excel(uploaded, header=None)
-                first = str(df.iloc[0, 0]).strip().lower()
-                if first in ("nome", "nomes", "name", "names", "participante"):
-                    df = df.iloc[1:]
-                st.info(f"{len(df)} nomes encontrados. Confirma o envio?")
-                if st.button("✅ Confirmar e carregar"):
-                    upload_names(df)
-                    st.success("Lista carregada!")
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao ler arquivo: {e}")
+search = st.text_input("🔍 Buscar por nome ou sobrenome", placeholder="Digite para filtrar...")
 
 st.markdown("---")
-
-search = st.text_input("🔍 Buscar por nome ou sobrenome", placeholder="Digite para filtrar...")
 
 data = all_data
 if search:
@@ -147,7 +105,7 @@ if search:
 if not data and total > 0:
     st.markdown('<p style="color:#FFECD2AA; text-align:center; font-size:0.85rem;">Nenhum resultado encontrado.</p>', unsafe_allow_html=True)
 elif total == 0:
-    st.markdown('<p style="color:#FFECD2AA; text-align:center; font-size:0.85rem;">Nenhuma inscrita carregada. Use o menu acima para enviar a planilha.</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color:#FFECD2AA; text-align:center; font-size:0.85rem;">Nenhuma inscrita carregada ainda.</p>', unsafe_allow_html=True)
 
 for person in data:
     pid = person["id"]
