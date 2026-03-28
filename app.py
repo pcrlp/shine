@@ -220,9 +220,32 @@ st.markdown(f"""
 
 search = st.text_input("Buscar", placeholder="🔍  Nome, email, nº do ingresso ou pedido...")
 
+# Filter tabs
+f1, f2, f3 = st.columns(3)
+with f1:
+    all_btn = st.button(f"Todas ({total})", key="f_all", use_container_width=True)
+with f2:
+    arrived_btn = st.button(f"Chegaram ({arrived})", key="f_arrived", use_container_width=True)
+with f3:
+    missing_btn = st.button(f"Faltam ({missing})", key="f_missing", use_container_width=True)
+
+if arrived_btn:
+    st.session_state["filtro"] = "chegaram"
+elif missing_btn:
+    st.session_state["filtro"] = "faltam"
+elif all_btn:
+    st.session_state["filtro"] = "todas"
+
+filtro = st.session_state.get("filtro", "todas")
+
 st.markdown("---")
 
 data = all_data
+if filtro == "chegaram":
+    data = [d for d in data if d.get("checked_in")]
+elif filtro == "faltam":
+    data = [d for d in data if not d.get("checked_in")]
+
 if search:
     term = strip_accents(search.strip().lower())
     data = [d for d in data if term in strip_accents(d["nome"].lower())]
