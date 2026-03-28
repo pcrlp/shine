@@ -1,7 +1,14 @@
 import streamlit as st
 import requests
 import os
+import unicodedata
 from datetime import datetime, timezone, timedelta
+
+def strip_accents(text):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
 
 st.set_page_config(page_title="Check-in Shine 2026", page_icon="✨", layout="centered")
 
@@ -217,8 +224,8 @@ st.markdown("---")
 
 data = all_data
 if search:
-    term = search.strip().lower()
-    data = [d for d in data if term in d["nome"].lower()]
+    term = strip_accents(search.strip().lower())
+    data = [d for d in data if term in strip_accents(d["nome"].lower())]
 
 if not data and total > 0:
     st.markdown('<p class="no-results">Nenhum resultado encontrado.</p>', unsafe_allow_html=True)
